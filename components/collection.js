@@ -14,13 +14,14 @@ export function initCollection(container, collection = { problems: [] }, onChang
 
     <div style="height:12px"></div>
 
-    <div id="inputArea" style="display:flex;gap:8px">
-      <input id="p_title" type="text" placeholder="Título del problema principal" style="flex:1" />
+    <div id="inputArea" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input id="p_title" type="text" placeholder="Título del problema / causa / efecto" style="flex:1;min-width:140px" />
       <select id="p_type" style="width:120px">
         <option value="problema">Problema</option>
         <option value="causa">Causa</option>
         <option value="efecto">Efecto</option>
       </select>
+      <input id="p_code" type="text" placeholder="Conexión (código opcional)" style="width:150px" />
       <button id="addBtn" class="button">Agregar</button>
     </div>
 
@@ -40,6 +41,7 @@ export function initCollection(container, collection = { problems: [] }, onChang
 
   const inputTitle = el.querySelector('#p_title');
   const inputType = el.querySelector('#p_type');
+  const inputCode = el.querySelector('#p_code');
   const addBtn = el.querySelector('#addBtn');
   const list = el.querySelector('#problemsList');
   const exportBtn = el.querySelector('#exportPNG');
@@ -99,7 +101,7 @@ export function initCollection(container, collection = { problems: [] }, onChang
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
               <div>
                 <div style="font-weight:600">${escape(item.title)}</div>
-                <div class="meta">${item.type} • id: ${item.id}</div>
+                <div class="meta">${item.type} • id: ${item.id}${item.code ? ' • ' + escape(item.code) : ''}</div>
               </div>
               <div class="controls">
                 <button class="icon-btn edit">✏️</button>
@@ -124,8 +126,12 @@ export function initCollection(container, collection = { problems: [] }, onChang
           });
           card.querySelector('.edit').addEventListener('click', async () => {
             const newTitle = await window.showPrompt('Editar título', item.title, 'Editar');
-            if(newTitle==null) return;
+            if(newTitle == null) return;
+            // Prompt for code but if user cancels, keep existing code instead of aborting the whole edit
+            const newCode = await window.showPrompt('Editar código / conexión (ej: P1, C2)', item.code || '', 'Editar código');
+            const finalCode = newCode == null ? (item.code || '') : newCode.trim();
             item.title = newTitle.trim();
+            item.code = finalCode;
             commit();
           });
           card.querySelector('.link').addEventListener('click', () => {
@@ -197,14 +203,17 @@ export function initCollection(container, collection = { problems: [] }, onChang
   addBtn.addEventListener('click', async () => {
     const title = inputTitle.value.trim();
     const type = inputType.value;
+    const manualCode = (inputCode.value || '').trim();
     if(!title){ await window.showMessage('Ingrese un título.','Validación'); return; }
-    // generate simple code for traceability: Pn / Cn / En
+    // generate simple code for traceability if not provided: Pn / Cn / En
     const countForType = state.problems.filter(p => p.type === type).length + 1;
     const prefix = type === 'problema' ? 'P' : (type === 'causa' ? 'C' : 'E');
-    const code = `${prefix}${countForType}`;
+    const generated = `${prefix}${countForType}`;
+    const code = manualCode || generated;
     const node = { id: nanoid(7), code, title, type, createdAt: new Date().toISOString(), links: [] };
     state.problems.push(node);
     inputTitle.value = '';
+    inputCode.value = '';
     commit();
   });
 
