@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Logical Framework</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "uuid/": "https://esm.sh/uuid@9.0.0/",
+      "nanoid/": "https://esm.sh/nanoid@4.0.0/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header id="titlebar">
+      <div class="titleBlock">
+        <div class="title">Logical Framework <span class="version">v1.3</span></div>
+        <div class="subtitle">Herramienta de recolección y análisis - Marco Lógico / Árbol de Problemas</div>
+      </div>
+      <div class="powered" aria-hidden="false">Powered by ITCPO</div>
+    </header>
+
+    <div id="container">
+      <nav id="sideMenu" aria-label="Menú principal">
+        <button class="menu-btn active" data-view="company">Empresa</button>
+        <button class="menu-btn" data-view="collection">Recolección</button>
+        <button class="menu-btn" data-view="analysis">Análisis</button>
+        <button class="menu-btn" data-view="reports">Informes</button>
+        <button class="menu-btn" id="loadExampleBtn">Ejemplo</button>
+
+        <div class="menu-divider"></div>
+
+        <div class="menu-actions">
+          <button id="exportBtn">Exportar JSON</button>
+          <input id="importInput" type="file" accept="application/json" style="display:none" />
+          <button id="importBtn">Importar JSON</button>
+          <button id="clearBtn" title="Borrar datos guardados">Borrar datos</button>
+        </div>
+      </nav>
+
+      <main id="mainView">
+        <!-- Views rendered here -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Floating help button and modal -->
+  <button id="helpBtn" aria-label="Ayuda" title="Ayuda">?</button>
+
+  <div id="helpModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="helpCard" role="document">
+      <div class="helpHeader">
+        <div>
+          <div class="helpTitle">Logical Framework — Ayuda</div>
+          <div class="small">Guía breve de uso, objetivo y ejemplo</div>
+        </div>
+        <button id="helpClose" aria-label="Cerrar ayuda">✕</button>
+      </div>
+
+      <div class="helpBody">
+        <h4>Introducción</h4>
+        <p>Logical Framework es una herramienta profesional para recolectar datos y generar análisis con la metodología del marco lógico y el árbol de problemas. Permite registrar la información de la empresa, capturar problemas/causas/efectos y producir borradores de análisis e informes.</p>
+
+        <h4>Objetivo</h4>
+        <p>Proveer una interfaz sencilla y práctica para que empresarios y analistas registren el contexto, identifiquen el problema central, sus causas y efectos, y generen un marco lógico inicial y reportes exportables.</p>
+
+        <h4>Uso — explicación completa</h4>
+        <ol>
+          <li>Empresa: Complete los datos básicos (nombre, sector, ubicación, tamaño y descripción) y presione "Guardar".</li>
+          <li>Recolección: Agregue elementos seleccionando el tipo (problema / causa / efecto). Puede editar, eliminar y vincular elementos entre sí (relaciones simples).</li>
+          <li>Análisis: Genere un borrador del marco lógico o visualice un árbol simplificado a partir de los registros.</li>
+          <li>Informes: Vea resúmenes y listas; exporte/importe datos JSON desde el menú.</li>
+        </ol>
+
+        <h4>Ejemplo</h4>
+        <p>1) En "Recolección" agregue un elemento tipo <em>problema</em> titulado "Baja productividad".</p>
+        <p>2) Agregue causas como "Falta de capacitación" y efectos como "Pérdida de clientes".</p>
+        <p>3) Vincule la causa con el problema y genere el borrador del marco lógico en "Análisis".</p>
+
+        <div class="helpFooterNote">
+          <div>© Carlos Alfredo Castillo Flores - ITCPO - 2026 • v1.3</div>
+        </div>
+      </div>
+    </div>
+    <div id="helpBackdrop" tabindex="-1"></div>
+  </div>
+
+  <footer id="footer">© Carlos Alfredo Castillo Flores - ITCPO - 2026</footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
