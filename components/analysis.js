@@ -7,7 +7,7 @@ export function initAnalysis(container, state, helpers = {}) {
         <h3 style="margin:0">Análisis</h3>
         <div class="small">Herramientas para generar el marco lógico y el árbol de problemas. (Interfaz profesional para análisis)</div>
       </div>
-      <div class="tag">Próximamente</div>
+      <div class="tag"></div>
     </div>
 
     <div style="height:12px"></div>
@@ -114,16 +114,64 @@ function renderLF(lf){
 function renderTree(collection){
   const items = collection.problems || [];
   if(items.length===0) return `<div class="small">No hay datos para mostrar.</div>`;
-  // produce a simple adjacency list visualization (textual) suitable for quick review
+
+  // Build id->item map
   const map = new Map(items.map(i=>[i.id,i]));
-  const rows = items.map(i=>{
-    const links = (i.links||[]).map(id => map.get(id)?.title || id).join(' ↦ ');
-    return `<div class="card" style="flex-direction:column;align-items:flex-start">
-      <div style="font-weight:600">${escape(i.title)} <span class="small">(${escape(i.type)})</span></div>
-      <div class="small" style="margin-top:6px">Conexiones: ${links || '—'}</div>
-    </div>`;
-  }).join('');
-  return `<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
+
+  // Compute a simple "complexity" score:
+  // base: number of links (outgoing), plus weight by type (causa:1, problema:2, efecto:0.5)
+  function complexityFor(item){
+    const linksCount = (item.links || []).length;
+    const typeWeight = item.type === 'problema' ? 2 : (item.type === 'causa' ? 1 : 0.5);
+    const ageBoost = item.createdAt ? (Date.now() - new Date(item.createdAt).getTime()) / (1000*60*60*24*365) : 0;
+    return linksCount * 1.1 + typeWeight + Math.min(ageBoost, 1) * 0.25;
+  }
+
+  // Group items into three tiers: efectos (top), causas (middle), problemas (bottom/root)
+  const efectos = items.filter(i => i.type === 'efecto').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
+  const causas = items.filter(i => i.type === 'causa').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
+  const problemas = items.filter(i => i.type === 'problema').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
+
+  // Render a compact card; smaller sizes for tree view to fit mobile/iframe
+  function renderCard(it){
+    const links = (it.links||[]).map(id => {
+      const t = map.get(id);
+      return t ? (t.code || t.title || id) : id;
+    }).join(' ↦ ');
+    const sizeScale = Math.min(1.08, 0.9 + (it._c / 8)); // smaller overall
+    const borderColor = it.type === 'problema' ? '#0b5d3f' : (it.type === 'causa' ? '#b45309' : '#065f46');
+    return `
+      <div class="card" style="flex-direction:column;align-items:flex-start;padding:8px;border-color:${borderColor};transform:scale(${sizeScale});transform-origin:center">
+        <div style="font-weight:700;font-size:13px">${escape(it.title)} <span class="small">(${escape(it.type)})</span></div>
+        <div class="small" style="margin-top:6px">Conexiones: ${links || '—'}</div>
+        <div class="small" style="margin-top:6px;opacity:0.8">C: ${it._c.toFixed(2)}</div>
+      </div>`;
+  }
+
+  // Helper to render a horizontal row of items; center them and allow wrapping
+  function renderRow(title, arr){
+    if(arr.length === 0) return `<div style="width:100%"><div class="small">${title}</div><div class="small">— Ninguno —</div></div>`;
+    const cards = arr.map(it => renderCard(it)).join('');
+    return `
+      <div style="width:100%;display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div class="small" style="font-weight:700">${title}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%">${cards}</div>
+      </div>`;
+  }
+
+  // Vertical layout: effects (top), causes (middle), problems (bottom). Each row adapts to space so three levels are visible.
+  const html = `
+    <div style="display:flex;flex-direction:column;gap:12px;align-items:stretch">
+      ${renderRow('Efectos (canopy - arriba)', efectos)}
+      ${renderRow('Causas (tronco - centro)', causas)}
+      ${renderRow('Problemas (raíz - abajo)', problemas)}
+    </div>
+
+    <div style="height:8px"></div>
+
+    <div class="small">Vista: los problemas se colocan abajo como raíz, las causas en el tronco y los efectos arriba; tarjetas reducidas para mejor ajuste.</div>
+  `;
+  return html;
 }
 
 function escape(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }

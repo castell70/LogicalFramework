@@ -249,18 +249,19 @@ async function loadExampleData(){
     },
     collection: {
       problems: [
-        { id: "p1", title: "Baja productividad por ciclo", type: "problema", createdAt: "2026-01-10T09:00:00Z", links: ["c1","c2","e1"] },
-        { id: "c1", title: "Falta de capacitación técnica del personal", type: "causa", createdAt: "2026-01-10T09:05:00Z", links: [] },
-        { id: "c2", title: "Equipos de riego y clima con mantenimiento deficiente", type: "causa", createdAt: "2026-01-10T09:07:00Z", links: [] },
-        { id: "c3", title: "Escasa adopción de prácticas de manejo integrado de plagas", type: "causa", createdAt: "2026-01-10T09:09:00Z", links: [] },
-        { id: "e1", title: "Aumento de costos operativos", type: "efecto", createdAt: "2026-01-10T09:12:00Z", links: [] },
-        { id: "e2", title: "Pérdida de contratos con compradores por inconsistencia de calidad", type: "efecto", createdAt: "2026-01-10T09:14:00Z", links: [] },
-        { id: "p2", title: "Rotación elevada de personal clave", type: "problema", createdAt: "2026-01-10T09:20:00Z", links: ["c4","e3"] },
-        { id: "c4", title: "Compensación y beneficios insuficientes", type: "causa", createdAt: "2026-01-10T09:22:00Z", links: [] },
-        { id: "e3", title: "Pérdida de conocimiento operativo", type: "efecto", createdAt: "2026-01-10T09:25:00Z", links: [] },
-        { id: "p3", title: "Baja presencia en canales de venta modernos", type: "problema", createdAt: "2026-01-10T09:30:00Z", links: ["c5","e4"] },
-        { id: "c5", title: "Estrategia comercial limitada y poca digitalización", type: "causa", createdAt: "2026-01-10T09:32:00Z", links: [] },
-        { id: "e4", title: "Crecimiento de ventas estancado", type: "efecto", createdAt: "2026-01-10T09:35:00Z", links: [] }
+        // problems with explicit codes for traceability (P/C/E + index)
+        { id: "p1", code: "P1", title: "Baja productividad por ciclo", type: "problema", createdAt: "2026-01-10T09:00:00Z", links: ["c1","c2","e1"] },
+        { id: "c1", code: "C1", title: "Falta de capacitación técnica del personal", type: "causa", createdAt: "2026-01-10T09:05:00Z", links: [] },
+        { id: "c2", code: "C2", title: "Equipos de riego y clima con mantenimiento deficiente", type: "causa", createdAt: "2026-01-10T09:07:00Z", links: [] },
+        { id: "c3", code: "C3", title: "Escasa adopción de prácticas de manejo integrado de plagas", type: "causa", createdAt: "2026-01-10T09:09:00Z", links: [] },
+        { id: "e1", code: "E1", title: "Aumento de costos operativos", type: "efecto", createdAt: "2026-01-10T09:12:00Z", links: [] },
+        { id: "e2", code: "E2", title: "Pérdida de contratos con compradores por inconsistencia de calidad", type: "efecto", createdAt: "2026-01-10T09:14:00Z", links: [] },
+        { id: "p2", code: "P2", title: "Rotación elevada de personal clave", type: "problema", createdAt: "2026-01-10T09:20:00Z", links: ["c4","e3"] },
+        { id: "c4", code: "C4", title: "Compensación y beneficios insuficientes", type: "causa", createdAt: "2026-01-10T09:22:00Z", links: [] },
+        { id: "e3", code: "E3", title: "Pérdida de conocimiento operativo", type: "efecto", createdAt: "2026-01-10T09:25:00Z", links: [] },
+        { id: "p3", code: "P3", title: "Baja presencia en canales de venta modernos", type: "problema", createdAt: "2026-01-10T09:30:00Z", links: ["c5","e4"] },
+        { id: "c5", code: "C5", title: "Estrategia comercial limitada y poca digitalización", type: "causa", createdAt: "2026-01-10T09:32:00Z", links: [] },
+        { id: "e4", code: "E4", title: "Crecimiento de ventas estancado", type: "efecto", createdAt: "2026-01-10T09:35:00Z", links: [] }
       ]
     }
   };

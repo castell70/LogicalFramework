@@ -48,8 +48,10 @@ export function initCollection(container, collection = { problems: [] }, onChang
   // initialize local state
   const state = { problems: Array.isArray(collection.problems) ? collection.problems.slice() : [] };
 
+  // Group and render by type: Problemas, Causas, Efectos
   function renderList(){
     list.innerHTML = '';
+
     if(state.problems.length === 0){
       const msg = document.createElement('div');
       msg.className = 'small';
@@ -57,39 +59,91 @@ export function initCollection(container, collection = { problems: [] }, onChang
       list.appendChild(msg);
       return;
     }
-    state.problems.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div>
-          <div style="font-weight:600">${escape(item.title)}</div>
-          <div class="meta">${item.type} • id: ${item.id}</div>
-        </div>
-        <div class="controls">
-          <button class="icon-btn edit">✏️</button>
-          <button class="icon-btn link">🔗</button>
-          <button class="icon-btn del">🗑️</button>
-        </div>
-      `;
-      // events
-      card.querySelector('.del').addEventListener('click', async () => {
-        const ok = await window.showConfirm('Eliminar este elemento?', 'Eliminar');
-        if(!ok) return;
-        const idx = state.problems.findIndex(p => p.id === item.id);
-        if(idx >= 0){ state.problems.splice(idx,1); commit(); }
-      });
-      card.querySelector('.edit').addEventListener('click', async () => {
-        const newTitle = await window.showPrompt('Editar título', item.title, 'Editar');
-        if(newTitle==null) return;
-        item.title = newTitle.trim();
-        commit();
-      });
-      card.querySelector('.link').addEventListener('click', () => {
-        showLinkEditor(item);
-      });
 
-      list.appendChild(card);
-    });
+    const groups = {
+      problema: state.problems.filter(p => p.type === 'problema'),
+      causa: state.problems.filter(p => p.type === 'causa'),
+      efecto: state.problems.filter(p => p.type === 'efecto')
+    };
+
+    // helper to render a section
+    function renderSection(title, items, hint){
+      const section = document.createElement('div');
+      section.style.display = 'flex';
+      section.style.flexDirection = 'column';
+      section.style.gap = '8px';
+      const header = document.createElement('div');
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      header.innerHTML = `<div style="font-weight:700">${title}</div><div class="small">${items.length} ${items.length===1?'elemento':'elementos'}</div>`;
+      section.appendChild(header);
+      if(hint){
+        const note = document.createElement('div');
+        note.className = 'small';
+        note.style.opacity = '0.9';
+        note.textContent = hint;
+        section.appendChild(note);
+      }
+      if(items.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = '— Ninguno registrado —';
+        section.appendChild(empty);
+      } else {
+        items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.flexDirection = 'column';
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div>
+                <div style="font-weight:600">${escape(item.title)}</div>
+                <div class="meta">${item.type} • id: ${item.id}</div>
+              </div>
+              <div class="controls">
+                <button class="icon-btn edit">✏️</button>
+                <button class="icon-btn link">🔗</button>
+                <button class="icon-btn del">🗑️</button>
+              </div>
+            </div>
+            <div class="small" style="margin-top:8px">Conexiones: ${
+            (item.links||[]).map(linkId => {
+              const target = state.problems.find(p => p.id === linkId);
+              return escape(target ? (target.code || target.id) : linkId);
+            }).join(', ') || '—'
+          }</div>
+          `;
+
+          // events
+          card.querySelector('.del').addEventListener('click', async () => {
+            const ok = await window.showConfirm('Eliminar este elemento?', 'Eliminar');
+            if(!ok) return;
+            const idx = state.problems.findIndex(p => p.id === item.id);
+            if(idx >= 0){ state.problems.splice(idx,1); commit(); }
+          });
+          card.querySelector('.edit').addEventListener('click', async () => {
+            const newTitle = await window.showPrompt('Editar título', item.title, 'Editar');
+            if(newTitle==null) return;
+            item.title = newTitle.trim();
+            commit();
+          });
+          card.querySelector('.link').addEventListener('click', () => {
+            showLinkEditor(item);
+          });
+
+          section.appendChild(card);
+        });
+      }
+      list.appendChild(section);
+    }
+
+    // Render in logical order: Problemas -> Causas -> Efectos
+    renderSection('Problemas', groups.problema, 'Elementos que describen la situación central a resolver.');
+    const sep1 = document.createElement('div'); sep1.style.height = '10px'; list.appendChild(sep1);
+    renderSection('Causas', groups.causa, 'Factores que contribuyen al/los problema(s).');
+    const sep2 = document.createElement('div'); sep2.style.height = '10px'; list.appendChild(sep2);
+    renderSection('Efectos', groups.efecto, 'Consecuencias observadas a partir del/los problema(s).');
   }
 
   function showLinkEditor(item){
@@ -144,7 +198,11 @@ export function initCollection(container, collection = { problems: [] }, onChang
     const title = inputTitle.value.trim();
     const type = inputType.value;
     if(!title){ await window.showMessage('Ingrese un título.','Validación'); return; }
-    const node = { id: nanoid(7), title, type, createdAt: new Date().toISOString(), links: [] };
+    // generate simple code for traceability: Pn / Cn / En
+    const countForType = state.problems.filter(p => p.type === type).length + 1;
+    const prefix = type === 'problema' ? 'P' : (type === 'causa' ? 'C' : 'E');
+    const code = `${prefix}${countForType}`;
+    const node = { id: nanoid(7), code, title, type, createdAt: new Date().toISOString(), links: [] };
     state.problems.push(node);
     inputTitle.value = '';
     commit();
