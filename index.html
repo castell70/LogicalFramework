@@ -34,11 +34,21 @@
 
         <div class="menu-divider"></div>
 
-        <div class="menu-actions">
-          <button id="exportBtn">Exportar JSON</button>
-          <input id="importInput" type="file" accept="application/json" style="display:none" />
-          <button id="importBtn">Importar JSON</button>
-          <button id="clearBtn" title="Borrar datos guardados">Borrar datos</button>
+        <details class="menu-actions tools" aria-label="Herramientas" style="border-radius:8px;padding:6px;background:transparent">
+          <summary style="list-style:none;cursor:pointer;padding:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-weight:600">
+            <span>Herramientas</span>
+          </summary>
+
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px">
+            <button id="exportBtn">Exportar JSON</button>
+            <input id="importInput" type="file" accept="application/json" style="display:none" />
+            <button id="importBtn">Importar JSON</button>
+            <button id="clearBtn" title="Borrar datos guardados">Borrar datos</button>
+          </div>
+        </details>
+
+        <div class="tools-copyright small" style="text-align:center;padding:6px;color:var(--muted);font-size:12px">
+          Carlos Alfredo Castillo Flores - ITCPO - 2026 - Ver. 2.0
         </div>
       </nav>
 

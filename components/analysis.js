@@ -138,24 +138,24 @@ function renderTree(collection){
       const t = map.get(id);
       return t ? (t.code || t.title || id) : id;
     }).join(' ↦ ');
-    const sizeScale = Math.min(1.08, 0.9 + (it._c / 8)); // smaller overall
+    // remove dynamic scaling to avoid overlap; use constrained responsive card sizing
     const borderColor = it.type === 'problema' ? '#0b5d3f' : (it.type === 'causa' ? '#b45309' : '#065f46');
     return `
-      <div class="card" style="flex-direction:column;align-items:flex-start;padding:8px;border-color:${borderColor};transform:scale(${sizeScale});transform-origin:center">
-        <div style="font-weight:700;font-size:13px">${escape(it.title)} <span class="small">(${escape(it.type)})</span></div>
-        <div class="small" style="margin-top:6px">Conexiones: ${links || '—'}</div>
+      <div class="card" style="flex-direction:column;align-items:flex-start;padding:10px;border-color:${borderColor};min-width:140px;max-width:260px;flex:0 1 220px;box-sizing:border-box">
+        <div style="font-weight:700;font-size:13px;word-break:break-word;line-height:1.15">${escape(it.title)} <span class="small">(${escape(it.type)})</span></div>
+        <div class="small" style="margin-top:6px;word-break:break-word">Conexiones: ${links || '—'}</div>
         <div class="small" style="margin-top:6px;opacity:0.8">C: ${it._c.toFixed(2)}</div>
       </div>`;
   }
 
-  // Helper to render a horizontal row of items; center them and allow wrapping
+  // Helper to render a horizontal row of items; allow wrapping into multiple lines and align start so items don't overlap
   function renderRow(title, arr){
     if(arr.length === 0) return `<div style="width:100%"><div class="small">${title}</div><div class="small">— Ninguno —</div></div>`;
     const cards = arr.map(it => renderCard(it)).join('');
     return `
-      <div style="width:100%;display:flex;flex-direction:column;gap:6px;align-items:center">
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px;align-items:stretch">
         <div class="small" style="font-weight:700">${title}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%">${cards}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-start;width:100%">${cards}</div>
       </div>`;
   }
 
