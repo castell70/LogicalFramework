@@ -24,9 +24,10 @@ export function initAnalysis(container, state, helpers = {}) {
         </div>
       </div>
       <div style="height:12px"></div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="generateLF" class="button">Generar borrador Marco Lógico</button>
         <button id="viewTree" class="button ghost">Ver árbol simplificado</button>
+        <button id="viewGraphic" class="button secondary" style="background:#eef6f2;color:var(--accent);border:1px solid rgba(11,93,63,0.06)">Ver árbol</button>
       </div>
     </div>
 
@@ -38,6 +39,7 @@ export function initAnalysis(container, state, helpers = {}) {
   const out = el.querySelector('#outputArea');
   const genBtn = el.querySelector('#generateLF');
   const viewBtn = el.querySelector('#viewTree');
+  const viewGraphicBtn = el.querySelector('#viewGraphic');
 
   genBtn.addEventListener('click', () => {
     const lf = buildLogicalFramework(state.company, state.collection);
@@ -46,6 +48,10 @@ export function initAnalysis(container, state, helpers = {}) {
 
   viewBtn.addEventListener('click', () => {
     out.innerHTML = renderTree(state.collection);
+  });
+
+  viewGraphicBtn.addEventListener('click', () => {
+    out.innerHTML = renderGraphicTree(state.collection);
   });
 }
 
@@ -115,11 +121,19 @@ function renderTree(collection){
   const items = collection.problems || [];
   if(items.length===0) return `<div class="small">No hay datos para mostrar.</div>`;
 
-  // Build id->item map
+  // Build id->item map and provide resolver that accepts either id or code
   const map = new Map(items.map(i=>[i.id,i]));
+  function resolveRef(ref){
+    if(!ref) return null;
+    const byId = map.get(ref);
+    if(byId) return byId;
+    for(const v of items){
+      if(v.code && String(v.code) === String(ref)) return v;
+    }
+    return null;
+  }
 
   // Compute a simple "complexity" score:
-  // base: number of links (outgoing), plus weight by type (causa:1, problema:2, efecto:0.5)
   function complexityFor(item){
     const linksCount = (item.links || []).length;
     const typeWeight = item.type === 'problema' ? 2 : (item.type === 'causa' ? 1 : 0.5);
@@ -127,18 +141,15 @@ function renderTree(collection){
     return linksCount * 1.1 + typeWeight + Math.min(ageBoost, 1) * 0.25;
   }
 
-  // Group items into three tiers: efectos (top), causas (middle), problemas (bottom/root)
   const efectos = items.filter(i => i.type === 'efecto').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
-  const causas = items.filter(i => i.type === 'causa').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
   const problemas = items.filter(i => i.type === 'problema').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
+  const causas = items.filter(i => i.type === 'causa').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
 
-  // Render a compact card; smaller sizes for tree view to fit mobile/iframe
   function renderCard(it){
-    const links = (it.links||[]).map(id => {
-      const t = map.get(id);
-      return t ? (t.code || t.title || id) : id;
+    const links = (it.links||[]).map(ref => {
+      const t = resolveRef(ref);
+      return t ? (t.code || t.title || ref) : ref;
     }).join(' ↦ ');
-    // remove dynamic scaling to avoid overlap; use constrained responsive card sizing
     const borderColor = it.type === 'problema' ? '#0b5d3f' : (it.type === 'causa' ? '#b45309' : '#065f46');
     return `
       <div class="card" style="flex-direction:column;align-items:flex-start;padding:10px;border-color:${borderColor};min-width:140px;max-width:260px;flex:0 1 220px;box-sizing:border-box">
@@ -148,7 +159,6 @@ function renderTree(collection){
       </div>`;
   }
 
-  // Helper to render a horizontal row of items; allow wrapping into multiple lines and align start so items don't overlap
   function renderRow(title, arr){
     if(arr.length === 0) return `<div style="width:100%"><div class="small">${title}</div><div class="small">— Ninguno —</div></div>`;
     const cards = arr.map(it => renderCard(it)).join('');
@@ -159,19 +169,113 @@ function renderTree(collection){
       </div>`;
   }
 
-  // Vertical layout: effects (top), causes (middle), problems (bottom). Each row adapts to space so three levels are visible.
   const html = `
     <div style="display:flex;flex-direction:column;gap:12px;align-items:stretch">
-      ${renderRow('Efectos (canopy - arriba)', efectos)}
-      ${renderRow('Causas (tronco - centro)', causas)}
-      ${renderRow('Problemas (raíz - abajo)', problemas)}
+      ${renderRow('Efectos (ramas - arriba)', efectos)}
+      ${renderRow('Problemas (tronco - centro)', problemas)}
+      ${renderRow('Causas (raíces - abajo)', causas)}
     </div>
 
     <div style="height:8px"></div>
 
-    <div class="small">Vista: los problemas se colocan abajo como raíz, las causas en el tronco y los efectos arriba; tarjetas reducidas para mejor ajuste.</div>
+    <div class="small">Vista: las causas se consideran la raíz (abajo), los problemas forman el tronco (centro) y los efectos las ramas (arriba); tarjetas reducidas para mejor ajuste.</div>
   `;
   return html;
 }
 
 function escape(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* New: renderGraphicTree - draws a simple SVG tree silhouette and places items:
+   - causas in roots (bottom), problemas around trunk (center), efectos in branches (top).
+   The layout is responsive and aims for legible labels on mobile/iframe. */
+function renderGraphicTree(collection){
+  const items = collection.problems || [];
+  if(items.length === 0) return `<div class="small">No hay datos para mostrar.</div>`;
+
+  const causas = items.filter(i => i.type === 'causa');
+  const problemas = items.filter(i => i.type === 'problema');
+  const efectos = items.filter(i => i.type === 'efecto');
+
+  // utility to create compact label blocks as HTML for overlay
+  function labelHTML(it, color){
+    const safeTitle = escape(it.title);
+    const code = it.code ? ` <span class="small">(${escape(it.code)})</span>` : '';
+    return `<div style="font-family:inherit;color:${color};font-size:13px;padding:6px;border-radius:8px;background:rgba(255,255,255,0.96);box-shadow:0 6px 14px rgba(8,10,12,0.06);max-width:220px;word-break:break-word">${safeTitle}${code}</div>`;
+  }
+
+  // Layout canvas used to compute relative positions (kept consistent with previous proportions)
+  const width = 960; const height = 620;
+  const centerX = width / 2;
+
+  function rowPositions(count, y, spread = 520){
+    const avail = Math.min(count, 8);
+    const spacing = avail > 1 ? spread / (avail - 1) : 0;
+    const start = centerX - (spacing * (avail - 1)) / 2;
+    const res = [];
+    for(let i=0;i<count;i++){
+      const x = start + Math.min(i, avail-1) * spacing;
+      res.push({x, y});
+    }
+    return res;
+  }
+
+  // Adjusted Y positions and spreads to bring branch and root labels closer to the tree silhouette
+  const topY = 150;    // moved branches slightly lower (closer to trunk)
+  const trunkY = 300;
+  const rootsY = 420;  // moved roots upward (closer to trunk)
+
+  const posE = rowPositions(efectos.length, topY, 560); // narrower spread for branches
+  const posP = rowPositions(problemas.length, trunkY, 420);
+  const posC = rowPositions(causas.length, rootsY, 520); // narrower spread for roots
+
+  // Convert positions into percentage coordinates for responsive placement over the image
+  function toPct(p){
+    return { left: (p.x / width) * 100, top: (p.y / height) * 100 };
+  }
+
+  // Build overlays for each item type (no connector lines)
+  const overlays = [];
+
+  efectos.forEach((it, i) => {
+    const p = posE[i] || {x: centerX + (i - efectos.length/2) * 120, y: topY};
+    const pct = toPct(p);
+    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#0b5d3f')}</div>`);
+  });
+
+  problemas.forEach((it, i) => {
+    const p = posP[i] || {x: centerX + (i - problemas.length/2) * 90, y: trunkY};
+    const pct = toPct(p);
+    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#3b793f')}</div>`);
+  });
+
+  causas.forEach((it, i) => {
+    const p = posC[i] || {x: centerX + (i - causas.length/2) * 120, y: rootsY + 10};
+    const pct = toPct(p);
+    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#a84f11')}</div>`);
+  });
+
+  // Use the provided tree image and overlay the labels; no connector lines included
+  const imgHtml = `<img src="/Arbol de problemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
+
+  const legend = `
+    <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+      <div class="small" style="font-weight:700">Leyenda:</div>
+      <div style="display:flex;gap:6px;align-items:center"><div style="width:12px;height:12px;background:#a84f11;border-radius:3px"></div><div class="small">Causas (raíces)</div></div>
+      <div style="display:flex;gap:6px;align-items:center"><div style="width:12px;height:12px;background:#3b793f;border-radius:3px"></div><div class="small">Problemas (tronco)</div></div>
+      <div style="display:flex;gap:6px;align-items:center"><div style="width:12px;height:12px;background:#0b5d3f;border-radius:3px"></div><div class="small">Efectos (ramas)</div></div>
+    </div>
+  `;
+
+  // Container with relative positioning so overlays align with the image responsively
+  return `
+    <div class="panel" style="padding:8px;overflow:auto">
+      <div style="position:relative;width:100%;max-width:100%;height:360px">
+        ${imgHtml}
+        <div style="position:absolute;inset:0;pointer-events:none">
+          ${overlays.join('\n')}
+        </div>
+      </div>
+      ${legend}
+    </div>
+  `;
+}

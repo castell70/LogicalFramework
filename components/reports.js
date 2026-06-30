@@ -174,9 +174,18 @@ function renderExecutiveSummary(summary){
 function renderDetailedList(items, state){
   if(!items || items.length===0) return `<div class="small">No hay elementos registrados.</div>`;
 
-  // build map to resolve link ids to full items
+  // build map to resolve link ids or codes to full items
   const all = state.collection?.problems || [];
   const lookup = new Map(all.map(i => [i.id, i]));
+  function resolveRefLocal(ref){
+    if(!ref) return null;
+    const byId = lookup.get(ref);
+    if(byId) return byId;
+    for(const v of all){
+      if(v.code && String(v.code) === String(ref)) return v;
+    }
+    return null;
+  }
 
   // Get all problems (roots) to group by; if none, fall back to listing non-problem items
   const problems = all.filter(i => i.type === 'problema');
@@ -285,11 +294,20 @@ function renderTreeView(collection){
 
   // map for id -> item lookup
   const map = new Map(items.map(i => [i.id, i]));
+  function resolveRefMap(ref){
+    if(!ref) return null;
+    const byId = map.get(ref);
+    if(byId) return byId;
+    for(const v of items){
+      if(v.code && String(v.code) === String(ref)) return v;
+    }
+    return null;
+  }
 
-  // group by type with desired ordering: efectos (top), causas (middle), problemas (bottom)
+  // group by type with desired ordering: efectos (top), problemas (middle), causas (bottom/raíces)
   const efectos = items.filter(i => i.type === 'efecto');
-  const causas = items.filter(i => i.type === 'causa');
   const problemas = items.filter(i => i.type === 'problema');
+  const causas = items.filter(i => i.type === 'causa');
 
   // helper to render a single card with connections resolved to titles
   function renderCard(it){
@@ -314,12 +332,12 @@ function renderTreeView(collection){
       </div>`;
   }
 
-  // Compose ordered layout: efectos (top), causas (middle), problemas (bottom)
+  // Compose ordered layout: efectos (arriba - ramas), problemas (centro - tronco), causas (abajo - raíces)
   const html = `
     <div style="display:flex;flex-direction:column;gap:12px;align-items:stretch">
-      ${renderRow('Efectos (arriba - canopy)', efectos)}
-      ${renderRow('Causas (centro - tronco)', causas)}
-      ${renderRow('Problemas (abajo - raíz)', problemas)}
+      ${renderRow('Efectos (ramas - arriba)', efectos)}
+      ${renderRow('Problemas (tronco - centro)', problemas)}
+      ${renderRow('Causas (raíces - abajo)', causas)}
     </div>
   `;
   return html;
