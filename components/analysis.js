@@ -141,9 +141,29 @@ function renderTree(collection){
     return linksCount * 1.1 + typeWeight + Math.min(ageBoost, 1) * 0.25;
   }
 
-  const efectos = items.filter(i => i.type === 'efecto').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
-  const problemas = items.filter(i => i.type === 'problema').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
-  const causas = items.filter(i => i.type === 'causa').map(i => ({...i, _c: complexityFor(i)})).sort((a,b) => b._c - a._c);
+  // helper: try to extract numeric suffix from codes like 'P1','C12','E3' and use it for ordering;
+  // fallback to complexity score and original insertion order to keep stable layout
+  function numericFromCode(it){
+    if(!it) return NaN;
+    const code = it.code || '';
+    const m = String(code).match(/(\d+)$/);
+    if(m) return Number(m[1]);
+    return NaN;
+  }
+  function sortByCodeThenComplex(a,b){
+    const na = numericFromCode(a), nb = numericFromCode(b);
+    if(!Number.isNaN(na) || !Number.isNaN(nb)){
+      if(Number.isNaN(na)) return 1;
+      if(Number.isNaN(nb)) return -1;
+      if(na !== nb) return na - nb;
+    }
+    // fallback to complexity descending to keep prominent items first
+    return b._c - a._c;
+  }
+
+  const efectos = items.filter(i => i.type === 'efecto').map(i => ({...i, _c: complexityFor(i)})).sort(sortByCodeThenComplex);
+  const problemas = items.filter(i => i.type === 'problema').map(i => ({...i, _c: complexityFor(i)})).sort(sortByCodeThenComplex);
+  const causas = items.filter(i => i.type === 'causa').map(i => ({...i, _c: complexityFor(i)})).sort(sortByCodeThenComplex);
 
   function renderCard(it){
     const links = (it.links||[]).map(ref => {
@@ -192,9 +212,37 @@ function renderGraphicTree(collection){
   const items = collection.problems || [];
   if(items.length === 0) return `<div class="small">No hay datos para mostrar.</div>`;
 
-  const causas = items.filter(i => i.type === 'causa');
-  const problemas = items.filter(i => i.type === 'problema');
-  const efectos = items.filter(i => i.type === 'efecto');
+  // Preserve connection/code ordering for graphical overlay as well:
+  const causas = items.filter(i => i.type === 'causa').slice().sort((a,b) => {
+    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
+    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
+    if(!Number.isNaN(na) || !Number.isNaN(nb)){
+      if(Number.isNaN(na)) return 1;
+      if(Number.isNaN(nb)) return -1;
+      return na - nb;
+    }
+    return 0;
+  });
+  const problemas = items.filter(i => i.type === 'problema').slice().sort((a,b) => {
+    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
+    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
+    if(!Number.isNaN(na) || !Number.isNaN(nb)){
+      if(Number.isNaN(na)) return 1;
+      if(Number.isNaN(nb)) return -1;
+      return na - nb;
+    }
+    return 0;
+  });
+  const efectos = items.filter(i => i.type === 'efecto').slice().sort((a,b) => {
+    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
+    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
+    if(!Number.isNaN(na) || !Number.isNaN(nb)){
+      if(Number.isNaN(na)) return 1;
+      if(Number.isNaN(nb)) return -1;
+      return na - nb;
+    }
+    return 0;
+  });
 
   // utility to create compact label blocks as HTML for overlay
   function labelHTML(it, color){
