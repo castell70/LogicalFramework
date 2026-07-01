@@ -305,6 +305,7 @@ function renderGraphicTree(collection){
   // Use the provided tree image and overlay the labels; no connector lines included
   // const imgHtml = `<img src="/LogicalFramework/Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
   const imgHtml = `<img src="../Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
+  const imgHtml = `<img src="/main/Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
 
   const legend = `
     <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
