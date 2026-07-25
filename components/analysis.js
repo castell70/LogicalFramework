@@ -252,7 +252,7 @@ function renderGraphicTree(collection){
 
   // Image and overlay container: position three grid rows vertically (efectos top, problemas center, causas bottom)
   //const imgHtml = `<img src="/Arbol de problemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
-  const imgHtml = `<img src="//Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
+  const imgHtml = `<img src="/Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
 
   const legend = `
     <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
