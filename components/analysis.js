@@ -212,100 +212,47 @@ function renderGraphicTree(collection){
   const items = collection.problems || [];
   if(items.length === 0) return `<div class="small">No hay datos para mostrar.</div>`;
 
-  // Preserve connection/code ordering for graphical overlay as well:
+  // Keep code-ordering for each set
   const causas = items.filter(i => i.type === 'causa').slice().sort((a,b) => {
-    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
-    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
-    if(!Number.isNaN(na) || !Number.isNaN(nb)){
-      if(Number.isNaN(na)) return 1;
-      if(Number.isNaN(nb)) return -1;
-      return na - nb;
-    }
+    const ma = a.code?.match(/(\d+)$/)?.[1]; const mb = b.code?.match(/(\d+)$/)?.[1];
+    if(ma || mb){ if(!ma) return 1; if(!mb) return -1; return Number(ma) - Number(mb); }
     return 0;
   });
   const problemas = items.filter(i => i.type === 'problema').slice().sort((a,b) => {
-    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
-    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
-    if(!Number.isNaN(na) || !Number.isNaN(nb)){
-      if(Number.isNaN(na)) return 1;
-      if(Number.isNaN(nb)) return -1;
-      return na - nb;
-    }
+    const ma = a.code?.match(/(\d+)$/)?.[1]; const mb = b.code?.match(/(\d+)$/)?.[1];
+    if(ma || mb){ if(!ma) return 1; if(!mb) return -1; return Number(ma) - Number(mb); }
     return 0;
   });
   const efectos = items.filter(i => i.type === 'efecto').slice().sort((a,b) => {
-    const na = (a.code && String(a.code).match(/(\d+)$/)) ? Number(a.code.match(/(\d+)$/)[1]) : NaN;
-    const nb = (b.code && String(b.code).match(/(\d+)$/)) ? Number(b.code.match(/(\d+)$/)[1]) : NaN;
-    if(!Number.isNaN(na) || !Number.isNaN(nb)){
-      if(Number.isNaN(na)) return 1;
-      if(Number.isNaN(nb)) return -1;
-      return na - nb;
-    }
+    const ma = a.code?.match(/(\d+)$/)?.[1]; const mb = b.code?.match(/(\d+)$/)?.[1];
+    if(ma || mb){ if(!ma) return 1; if(!mb) return -1; return Number(ma) - Number(mb); }
     return 0;
   });
 
-  // utility to create compact label blocks as HTML for overlay
+  // label block generator — flexible size that adapts to content
   function labelHTML(it, color){
     const safeTitle = escape(it.title);
     const code = it.code ? ` <span class="small">(${escape(it.code)})</span>` : '';
-    return `<div style="font-family:inherit;color:${color};font-size:13px;padding:6px;border-radius:8px;background:rgba(255,255,255,0.96);box-shadow:0 6px 14px rgba(8,10,12,0.06);max-width:220px;word-break:break-word">${safeTitle}${code}</div>`;
+    return `<div style="font-family:inherit;color:${color};font-size:13px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.98);box-shadow:0 8px 20px rgba(8,10,12,0.06);max-width:100%;word-break:break-word;display:inline-block">${safeTitle}${code}</div>`;
   }
 
-  // Layout canvas used to compute relative positions (kept consistent with previous proportions)
-  const width = 960; const height = 620;
-  const centerX = width / 2;
-
-  function rowPositions(count, y, spread = 520){
-    const avail = Math.min(count, 8);
-    const spacing = avail > 1 ? spread / (avail - 1) : 0;
-    const start = centerX - (spacing * (avail - 1)) / 2;
-    const res = [];
-    for(let i=0;i<count;i++){
-      const x = start + Math.min(i, avail-1) * spacing;
-      res.push({x, y});
-    }
-    return res;
+  // Build grid rows for each type: each row uses CSS grid with columns = number of items (min 1)
+  function buildGridRow(arr, color, ariaLabel){
+    const count = Math.max(1, arr.length);
+    // limit columns visually for very large counts but allow wrapping; use auto columns with minmax
+    const gridStyle = `display:grid;grid-template-columns:repeat(${count},minmax(0,1fr));gap:8px;align-items:start;justify-items:center;padding:8px;width:100%`;
+    const cells = (arr.length ? arr : [{ id: '__empty' }]).map(it => {
+      if(it.id === '__empty') return `<div style="opacity:0.7" class="small">— Ninguno —</div>`;
+      const lbl = labelHTML(it,color);
+      // each cell centers content and allows label to size to its content without overflowing column
+      return `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start">${lbl}</div>`;
+    }).join('\n');
+    return `<div role="group" aria-label="${ariaLabel}" style="${gridStyle}">${cells}</div>`;
   }
 
-  // Adjusted Y positions and spreads to bring branch and root labels closer to the tree silhouette
-  const topY = 150;    // moved branches slightly lower (closer to trunk)
-  const trunkY = 300;
-  const rootsY = 420;  // moved roots upward (closer to trunk)
+  // Image and overlay container: position three grid rows vertically (efectos top, problemas center, causas bottom)
+  const imgHtml = `<img src="/Arbol de problemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
 
-  const posE = rowPositions(efectos.length, topY, 560); // narrower spread for branches
-  const posP = rowPositions(problemas.length, trunkY, 420);
-  const posC = rowPositions(causas.length, rootsY, 520); // narrower spread for roots
-
-  // Convert positions into percentage coordinates for responsive placement over the image
-  function toPct(p){
-    return { left: (p.x / width) * 100, top: (p.y / height) * 100 };
-  }
-
-  // Build overlays for each item type (no connector lines)
-  const overlays = [];
-
-  efectos.forEach((it, i) => {
-    const p = posE[i] || {x: centerX + (i - efectos.length/2) * 120, y: topY};
-    const pct = toPct(p);
-    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#0b5d3f')}</div>`);
-  });
-
-  problemas.forEach((it, i) => {
-    const p = posP[i] || {x: centerX + (i - problemas.length/2) * 90, y: trunkY};
-    const pct = toPct(p);
-    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#3b793f')}</div>`);
-  });
-
-  causas.forEach((it, i) => {
-    const p = posC[i] || {x: centerX + (i - causas.length/2) * 120, y: rootsY + 10};
-    const pct = toPct(p);
-    overlays.push(`<div style="position:absolute;left:${pct.left}%;top:${pct.top}%;transform:translate(-50%,-50%);z-index:4">${labelHTML(it,'#a84f11')}</div>`);
-  });
-
-  // Use the provided tree image and overlay the labels; no connector lines included
-  const imgHtml = `<img src="./Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
-  // const imgHtml = `<img src="../Arboldeproblemas.png" alt="Árbol de problemas" style="width:100%;height:360px;object-fit:contain;border-radius:8px;display:block">`;
-  
   const legend = `
     <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
       <div class="small" style="font-weight:700">Leyenda:</div>
@@ -315,14 +262,31 @@ function renderGraphicTree(collection){
     </div>
   `;
 
-  // Container with relative positioning so overlays align with the image responsively
+  // Compose three rows and absolutely position them so they align visually with the tree silhouette.
+  // Rows are pointer-events: none on container, but cells keep interactive text selectable if needed.
+  const rowE = buildGridRow(efectos, '#0b5d3f', 'Efectos (ramas)');
+  const rowP = buildGridRow(problemas, '#3b793f', 'Problemas (tronco)');
+  const rowC = buildGridRow(causas, '#a84f11', 'Causas (raíces)');
+
+  // vertical positions in percent to place rows roughly aligned with image features; keeps labels close to tree
+  const topPct = 18;   // efectos
+  const midPct = 48;   // problemas
+  const botPct = 76;   // causas
+
+  // container uses absolute-positioned rows; each row's inner grid will distribute columns evenly and adapt label sizes
+  const overlaysHtml = `
+    <div style="position:absolute;inset:0;pointer-events:none;display:block">
+      <div style="position:absolute;left:50%;top:${topPct}%;transform:translate(-50%,-50%);width:92%">${rowE}</div>
+      <div style="position:absolute;left:50%;top:${midPct}%;transform:translate(-50%,-50%);width:92%">${rowP}</div>
+      <div style="position:absolute;left:50%;top:${botPct}%;transform:translate(-50%,-50%);width:92%">${rowC}</div>
+    </div>
+  `;
+
   return `
     <div class="panel" style="padding:8px;overflow:auto">
       <div style="position:relative;width:100%;max-width:100%;height:360px">
         ${imgHtml}
-        <div style="position:absolute;inset:0;pointer-events:none">
-          ${overlays.join('\n')}
-        </div>
+        ${overlaysHtml}
       </div>
       ${legend}
     </div>
