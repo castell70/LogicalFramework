@@ -5,7 +5,8 @@ import { initReports } from './components/reports.js';
 
 const state = {
   company: load('lf_company') || {},
-  collection: load('lf_collection') || { problems: [] }
+  collection: load('lf_collection') || { problems: [] },
+  marco: load('lf_marco') || { rows: [] }
 };
 
 // Universal dialog utilities (promise-based) to replace alert/confirm/prompt
@@ -192,7 +193,8 @@ function render(view){
   } else if(view === 'reports'){
     initReports(main, state, {
       saveCompany: c => { state.company = c; save('lf_company', c) },
-      saveCollection: c => { state.collection = c; save('lf_collection', c) }
+      saveCollection: c => { state.collection = c; save('lf_collection', c) },
+      saveMarco: c => { state.marco = c; save('lf_marco', c) }
     });
   }
 }
@@ -200,7 +202,7 @@ function render(view){
 menuBtns.forEach(b => b.addEventListener('click', () => render(b.dataset.view)));
 
 exportBtn.addEventListener('click', () => {
-  const data = { company: state.company, collection: state.collection, exportedAt: new Date().toISOString() };
+  const data = { company: state.company, collection: state.collection, marco: state.marco, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -218,6 +220,7 @@ importInput.addEventListener('change', ev => {
       const parsed = JSON.parse(reader.result);
       if(parsed.company) { state.company = parsed.company; save('lf_company', state.company); }
       if(parsed.collection) { state.collection = parsed.collection; save('lf_collection', state.collection); }
+      if(parsed.marco) { state.marco = parsed.marco; save('lf_marco', state.marco); }
       render(currentView || 'company');
       await window.showMessage('Importación completada.', 'Importar');
     }catch(e){ await window.showMessage('Archivo inválido.', 'Error') }
@@ -231,8 +234,10 @@ clearBtn.addEventListener('click', async () => {
   if(ok){
     localStorage.removeItem('lf_company');
     localStorage.removeItem('lf_collection');
+    localStorage.removeItem('lf_marco');
     state.company = {};
     state.collection = { problems: [] };
+    state.marco = { rows: [] };
     render('company');
   }
 });
@@ -263,15 +268,107 @@ async function loadExampleData(){
         { id: "c5", code: "C5", title: "Estrategia comercial limitada y poca digitalización", type: "causa", createdAt: "2026-01-10T09:32:00Z", links: [] },
         { id: "e4", code: "E4", title: "Crecimiento de ventas estancado", type: "efecto", createdAt: "2026-01-10T09:35:00Z", links: [] }
       ]
+    },
+    // Informe Marco Lógico: plantilla de 4 columnas (Jerarquía de objetivos / Indicador / Medios de verificación / Supuesto)
+    // Cada fila del nivel "Resultado" y "Objetivo" exige indicador, medios de verificación y supuesto para que el informe pueda generarse.
+    marco: {
+      rows: [
+        {
+          jerarquia: "Objetivo general",
+          text: "Incrementar la productividad y competitividad sostenible de AgroPro en mercados locales y de exportación.",
+          indicador: "Productividad por hectárea y rentabilidad neta al cierre del periodo de gestión.",
+          medios: "Informes de producción, reportes financieros anuales.",
+          supuesto: ""
+        },
+        {
+          jerarquia: "Objetivo",
+          text: "Mejorar la productividad por ciclo de cultivo.",
+          indicador: "1.1 Kilogramos cosechados por hectárea por ciclo.",
+          medios: "Registros de cosecha e informes de campo.",
+          supuesto: "Las condiciones climáticas se mantienen dentro de rangos operativos."
+        },
+        {
+          jerarquia: "Objetivo",
+          text: "Reducir la rotación de personal clave y retener el conocimiento operativo.",
+          indicador: "2.1 % de reducción en la tasa de rotación anual de personal con rol clave.",
+          medios: "Reportes de recursos humanos y encuestas de clima laboral.",
+          supuesto: "El mercado laboral local no cambia de forma inesperada las expectativas salariales."
+        },
+        {
+          jerarquia: "Objetivo",
+          text: "Ampliar la presencia en canales de venta modernos.",
+          indicador: "3.1 % de crecimiento de las ventas a través de canales de venta modernos y digitales.",
+          medios: "Reportes de ventas por canal y seguimiento comercial.",
+          supuesto: "Los distribuidores y plataformas mantienen condiciones de acceso estables."
+        },
+        {
+          jerarquia: "Resultado",
+          text: "Personal técnico capacitado en mantenimiento de equipos y cultivos.",
+          indicador: "1.1.1 Número de operadores formados que aprueban la evaluación de destrezas técnicas.",
+          medios: "Hojas de asistencia, evaluaciones previas y posteriores.",
+          supuesto: "El personal permanece en sus puestos y aplica los conocimientos adquiridos."
+        },
+        {
+          jerarquia: "Resultado",
+          text: "Programa de mantenimiento preventivo de riego y climatización operativo.",
+          indicador: "1.1.2 % de equipos con mantenimiento preventivo ejecutado según cronograma.",
+          medios: "Expedientes técnicos y fichas de mantenimiento.",
+          supuesto: "Los repuestos están disponibles en el mercado local."
+        },
+        {
+          jerarquia: "Resultado",
+          text: "Esquema de compensación y beneficios competitivo aplicado.",
+          indicador: "2.1.1 % de personal clave cubierto por el nuevo esquema de beneficios.",
+          medios: "Políticas de RH firmadas y nóminas.",
+          supuesto: "No se produce un conflicto laboral externo que afecte el plan."
+        },
+        {
+          jerarquia: "Resultado",
+          text: "Estrategia comercial digital implementada.",
+          indicador: "3.1.1 Número de canales de venta modernos activos al cierre del proyecto.",
+          medios: "Informes comerciales y analítica digital.",
+          supuesto: "La conectividad y el acceso a plataformas se mantienen estables."
+        },
+        {
+          jerarquia: "Actividad",
+          text: "Elaboración del plan de formación técnica del personal basado en la evaluación de necesidades.",
+          indicador: "",
+          medios: "",
+          supuesto: ""
+        },
+        {
+          jerarquia: "Actividad",
+          text: "Contratación de un proveedor externo para el mantenimiento preventivo de los equipos.",
+          indicador: "",
+          medios: "",
+          supuesto: ""
+        },
+        {
+          jerarquia: "Actividad",
+          text: "Diseño e implementación del nuevo esquema de compensación y beneficios.",
+          indicador: "",
+          medios: "",
+          supuesto: ""
+        },
+        {
+          jerarquia: "Actividad",
+          text: "Desarrollo del plan comercial y activación de los canales de venta digitales.",
+          indicador: "",
+          medios: "",
+          supuesto: ""
+        }
+      ]
     }
   };
 
   state.company = sample.company;
   state.collection = sample.collection;
+  state.marco = sample.marco;
   save('lf_company', state.company);
   save('lf_collection', state.collection);
+  save('lf_marco', state.marco);
   render('collection');
-  await window.showMessage('Datos de ejemplo cargados. Revisa Recolección y Análisis para explorar los elementos.', 'Ejemplo cargado');
+  await window.showMessage('Datos de ejemplo cargados. Revisa Informes > "Marco Lógico" para ver el informe en formato de plantilla.', 'Ejemplo cargado');
 }
 
 if(loadExampleBtn){
